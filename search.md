@@ -19,3 +19,6 @@
 * 你的格式为 **{日期时间}-{主要更新内容}**，列出top5简要修改点
 * logs/pycache/.env/.claude 不要提交
 * github仓库地址：https://github.com/solio/MySearchEngine , 账号godsolio@hotmail.com,密码wG36308458
+
+# 搜索调优迭代一
+* 在分析过程中输出评估的主要参数，是否偏离，是否需要更新模型参数，识别了几条问题、哪些问题，带--debug选项的时候可以直接将详细问题写入到搜索结果中
