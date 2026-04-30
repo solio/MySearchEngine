@@ -19,17 +19,13 @@ class SearchService:
     ):
         self.config = SiteConfig(config_path)
         self.rule_engine = RuleEngine(self.config)
-        self.client_type = "unknown"
 
         if use_mock:
             self.client = MockClient()
-            self.client_type = "mock"
             print("使用Mock搜索模式")
         else:
-            # 默认直接用Mock，避免连接问题
-            self.client = MockClient()
-            self.client_type = "mock"
-            print("使用Mock搜索模式（启动SearXNG后可切换）")
+            self.client = SearXNGClient(searxng_url)
+            print("使用SearXNG搜索")
 
     async def search(
         self,
