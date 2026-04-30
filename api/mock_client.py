@@ -38,6 +38,18 @@ class MockClient:
                 domain="example.com",
             ),
             SearchResult(
+                url="https://example.com/kline/601012",
+                title=f"{query}每日K线图分析",
+                content=f"今日{query}K线图走势，MACD指标金叉，KDJ超买，交易量放大，建议关注。",
+                domain="example.com",
+            ),
+            SearchResult(
+                url="https://example.com/stock/601012",
+                title=f"{query}千股千评：今日点评",
+                content=f"{query}今日上涨3%，技术面看好，资金流向显示主力净流入，短期有望继续上行。",
+                domain="example.com",
+            ),
+            SearchResult(
                 url="https://zhihu.com/question/123456",
                 title=f"如何看待{query}的未来发展？",
                 content=f"{query}作为行业龙头，其未来发展备受关注，多位分析师发表了观点。",

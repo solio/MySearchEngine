@@ -34,7 +34,8 @@ class SearchService:
         num_results: int = 20,
         time_range: Optional[str] = "month",
         use_quality_sites_only: bool = False,
-    ) -> List[SearchResult]:
+        debug: bool = False,
+    ) -> tuple[List[SearchResult], Dict]:
         tasks = []
 
         if use_quality_sites_only:
@@ -62,8 +63,8 @@ class SearchService:
                     seen_urls.add(result.url)
                     all_results.append(result)
 
-        filtered = self.rule_engine.filter_and_score(all_results)
-        return filtered[:num_results]
+        filtered, spam_stats = self.rule_engine.filter_and_score(all_results, debug)
+        return filtered[:num_results], spam_stats
 
     async def targeted_search(
         self,
@@ -71,7 +72,8 @@ class SearchService:
         sites: Optional[List[str]] = None,
         num_results: int = 20,
         time_range: Optional[str] = "month",
-    ) -> List[SearchResult]:
+        debug: bool = False,
+    ) -> tuple[List[SearchResult], Dict]:
         if sites is None:
             sites = [site.domain for site in self.config.quality_sites]
 
@@ -93,5 +95,5 @@ class SearchService:
                     seen_urls.add(result.url)
                     all_results.append(result)
 
-        filtered = self.rule_engine.filter_and_score(all_results)
-        return filtered[:num_results]
+        filtered, spam_stats = self.rule_engine.filter_and_score(all_results, debug)
+        return filtered[:num_results], spam_stats

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 
 @dataclass
@@ -15,6 +15,7 @@ class SearchResult:
     spam_reason: Optional[str] = None
     extracted_text: Optional[str] = None
     search_time: datetime = field(default_factory=datetime.now)
+    debug_info: Dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -28,4 +29,5 @@ class SearchResult:
             "spam_reason": self.spam_reason,
             "extracted_text": self.extracted_text,
             "search_time": self.search_time.isoformat(),
+            "debug_info": self.debug_info,
         }
