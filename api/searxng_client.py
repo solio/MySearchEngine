@@ -17,17 +17,17 @@ class SearXNGClient:
         language: str = "zh-CN",
         time_range: Optional[str] = None,
     ) -> List[SearchResult]:
-        params = {
+        data = {
             "q": query,
             "format": "json",
             "language": language,
         }
 
         if time_range:
-            params["time_range"] = time_range
+            data["time_range"] = time_range
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(f"{self.base_url}/search", params=params)
+            response = await client.post(f"{self.base_url}/search", data=data)
             response.raise_for_status()
             data = response.json()
 
