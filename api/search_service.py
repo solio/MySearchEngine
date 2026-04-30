@@ -3,6 +3,8 @@ from typing import List, Dict, Optional
 from urllib.parse import urlparse
 
 from api.searxng_client import SearXNGClient
+from api.duckduckgo_client import DuckDuckGoClient
+from api.mock_client import MockClient
 from filters.rule_engine import RuleEngine
 from models.site_config import SiteConfig
 from models.search_result import SearchResult
@@ -13,10 +15,18 @@ class SearchService:
         self,
         searxng_url: str = "http://localhost:8080",
         config_path: str = "config/quality_sites.yaml",
+        use_mock: bool = False,
     ):
-        self.client = SearXNGClient(searxng_url)
         self.config = SiteConfig(config_path)
         self.rule_engine = RuleEngine(self.config)
+
+        if use_mock:
+            self.client = MockClient()
+        else:
+            try:
+                self.client = SearXNGClient(searxng_url)
+            except Exception:
+                self.client = DuckDuckGoClient()
 
     async def search(
         self,

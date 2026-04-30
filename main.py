@@ -40,11 +40,12 @@ def save_search_results(query: str, results: list, use_targeted: bool = False):
 
 async def main():
     if len(sys.argv) < 2:
-        print("Usage: python main.py <query> [--targeted] [--sites site1,site2]")
+        print("Usage: python main.py <query> [--targeted] [--sites site1,site2] [--mock]")
         return
 
     query = sys.argv[1]
     use_targeted = "--targeted" in sys.argv
+    use_mock = "--mock" in sys.argv
 
     sites = None
     if "--sites" in sys.argv:
@@ -52,7 +53,7 @@ async def main():
         if idx + 1 < len(sys.argv):
             sites = sys.argv[idx + 1].split(",")
 
-    service = SearchService()
+    service = SearchService(use_mock=use_mock)
 
     print(f"搜索: {query}")
     print("-" * 80)
