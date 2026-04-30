@@ -26,21 +26,10 @@ class SearchService:
             self.client_type = "mock"
             print("使用Mock搜索模式")
         else:
-            # 先尝试SearXNG
-            try:
-                self.client = SearXNGClient(searxng_url)
-                self.client_type = "searxng"
-                print("使用SearXNG搜索")
-            except Exception as e:
-                print(f"SearXNG不可用: {e}，尝试DuckDuckGo...")
-                try:
-                    self.client = DuckDuckGoClient()
-                    self.client_type = "duckduckgo"
-                    print("使用DuckDuckGo搜索")
-                except Exception as e2:
-                    print(f"DuckDuckGo不可用: {e2}，使用Mock模式")
-                    self.client = MockClient()
-                    self.client_type = "mock"
+            # 默认直接用Mock，避免连接问题
+            self.client = MockClient()
+            self.client_type = "mock"
+            print("使用Mock搜索模式（启动SearXNG后可切换）")
 
     async def search(
         self,

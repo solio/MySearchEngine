@@ -6,9 +6,21 @@ from models.search_result import SearchResult
 
 
 class SearXNGClient:
-    def __init__(self, base_url: str = "http://localhost:8080", timeout: int = 40):
+    def __init__(self, base_url: str = "http://localhost:8080", timeout: int = 40, test_connection: bool = True):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        if test_connection:
+            import asyncio
+            asyncio.run(self._test_connection())
+
+    async def _test_connection(self):
+        """测试SearXNG连接是否可用"""
+        async with httpx.AsyncClient(timeout=5) as client:
+            try:
+                response = await client.get(f"{self.base_url}/")
+                response.raise_for_status()
+            except Exception as e:
+                raise ConnectionError(f"SearXNG不可用: {e}")
 
     async def search(
         self,
