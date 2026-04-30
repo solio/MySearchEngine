@@ -1,0 +1,122 @@
+# 优质站点配置
+quality_sites:
+  - domain: xueqiu.com
+    name: 雪球
+    weight: 1.5
+    type: forum
+    trust_level: high
+    url_patterns:
+      include:
+        - "/\\d+/\\d+"
+        - "/\\d+$"
+      exclude:
+        - "/kline/"
+        - "/quote/"
+        - "/chart/"
+
+  - domain: guba.eastmoney.com
+    name: 股吧
+    weight: 1.2
+    type: forum
+    trust_level: medium
+    url_patterns:
+      include:
+        - "/news,"
+        - "/subject,"
+      exclude:
+        - "/list,"
+        - "/quote,"
+
+  - domain: cls.cn
+    name: 财联社
+    weight: 1.8
+    type: news
+    trust_level: high
+
+  - domain: 36kr.com
+    name: 36氪
+    weight: 1.5
+    type: tech
+    trust_level: high
+
+  - domain: yicai.com
+    name: 第一财经
+    weight: 1.6
+    type: news
+    trust_level: high
+
+  - domain: caixin.com
+    name: 财新
+    weight: 1.8
+    type: news
+    trust_level: high
+
+  - domain: stcn.com
+    name: 证券时报
+    weight: 1.6
+    type: news
+    trust_level: high
+
+  - domain: cs.com.cn
+    name: 中国证券报
+    weight: 1.6
+    type: news
+    trust_level: high
+
+  - domain: nbd.com.cn
+    name: 每日经济新闻
+    weight: 1.5
+    type: news
+    trust_level: high
+
+  - domain: zhihu.com
+    name: 知乎
+    weight: 1.2
+    type: qna
+    trust_level: medium
+    url_patterns:
+      include:
+        - "/question/"
+        - "/p/"
+
+# 垃圾关键词（用于快速过滤）
+spam_keywords:
+  - "实时行情"
+  - "分时走势"
+  - "K线图"
+  - "均价线"
+  - "MACD"
+  - "KDJ"
+  - "交易量"
+  - "技术分析"
+  - "大盘指数"
+  - "股吧首页"
+  - "F10资料"
+  - "财务指标"
+  - "盘口分析"
+  - "资金流向"
+  - "龙虎榜"
+  - "个股点评"
+  - "千股千评"
+  - "每日一股"
+  - "涨停预测"
+  - "牛股推荐"
+
+# 优质URL模式
+good_url_patterns:
+  - "/\\d{4}/\\d{2}/\\d{2}/"  # 包含年月日
+  - "/\\d{6,8}/"              # 包含日期数字
+  - "/news/"
+  - "/article/"
+  - "/post/"
+  - "/p/\\d+"
+  - "/\\d+\\.html?"
+
+# 垃圾URL模式
+bad_url_patterns:
+  - "/list,"
+  - "/quote/"
+  - "/kline/"
+  - "/chart/"
+  - "/graph/"
+  - "/stock/"

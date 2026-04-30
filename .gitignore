@@ -1,0 +1,6 @@
+logs/
+__pycache__/
+.env
+.claude/
+*.pyc
+search_results/
