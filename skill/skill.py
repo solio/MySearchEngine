@@ -6,6 +6,7 @@ MySearchEngine Skill
 """
 import asyncio
 import json
+import logging
 import re
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +14,10 @@ from typing import Any, Dict, List, Optional
 
 # 导入主程序中的搜索服务
 from api.search_service import SearchService
+from utils.logger import setup_logger
+
+# Initialize logger
+logger = setup_logger("mysearchengine", level=logging.INFO)
 
 
 def parse_search_result_file(file_path: Path) -> Optional[Dict[str, Any]]:
@@ -46,6 +51,8 @@ def parse_search_result_file(file_path: Path) -> Optional[Dict[str, Any]]:
             "problems": [],
             "needs_param_update": False,
             "update_suggestion": None,
+            "failure_reason": None,
+            "failure_message": None,
             "results": [],
         }
 
@@ -114,6 +121,10 @@ def parse_search_result_file(file_path: Path) -> Optional[Dict[str, Any]]:
                         result["low_quality_count"] = int(match.group())
                 except Exception:
                     pass
+            elif line.startswith("- 失败原因:"):
+                result["failure_reason"] = line[len("- 失败原因:") :].strip()
+            elif line.startswith("- 失败说明:"):
+                result["failure_message"] = line[len("- 失败说明:") :].strip()
 
             # 解析过滤原因
             elif line.startswith("- ") and "条" in line and ":" in line:
@@ -317,6 +328,8 @@ def search(
         "problems": spam_stats.get("problems", []),
         "needs_param_update": spam_stats.get("needs_param_update", False),
         "param_update_suggestion": spam_stats.get("update_suggestion") if spam_stats.get("needs_param_update") else None,
+        "failure_reason": spam_stats.get("failure_reason"),
+        "failure_message": spam_stats.get("failure_message"),
         "results": [],
     }
 

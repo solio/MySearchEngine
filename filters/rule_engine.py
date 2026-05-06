@@ -192,6 +192,7 @@ class RuleEngine:
             "bad_url_count": 0,
             "low_quality_count": 0,
             "problems": [],
+            "failure_reason": None,
         }
 
         for result in results:
@@ -267,4 +268,17 @@ class RuleEngine:
             spam_stats["update_suggestion"] = "\n".join(suggestions) if suggestions else "建议检查过滤规则配置"
 
         scored.sort(key=lambda x: x.score, reverse=True)
+
+        # 分析无结果的原因
+        if len(scored) == 0:
+            if spam_stats["total"] == 0:
+                spam_stats["failure_reason"] = "NO_RESULTS_FROM_ENGINE"
+                spam_stats["failure_message"] = "搜索引擎没有返回任何结果"
+            else:
+                spam_stats["failure_reason"] = "ALL_FILTERED"
+                spam_stats["failure_message"] = f"搜索到{spam_stats['total']}条结果，但全部被过滤掉了"
+        else:
+            spam_stats["failure_reason"] = None
+            spam_stats["failure_message"] = None
+
         return scored, spam_stats

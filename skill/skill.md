@@ -42,6 +42,8 @@
 | problems | array | 识别到的问题列表 |
 | needs_param_update | boolean | 是否需要更新模型参数 |
 | param_update_suggestion | string/null | 参数更新建议，无建议时为null，当模型认为需要调整过滤参数时返回建议内容 |
+| failure_reason | string/null | 失败原因代码：NO_RESULTS_FROM_ENGINE（搜索引擎无结果）、ALL_FILTERED（全部被过滤），正常时为null |
+| failure_message | string/null | 失败原因说明，正常时为null |
 | results | array | 搜索结果列表 |
 | results[].title | string | 搜索结果标题 |
 | results[].url | string | 搜索结果链接 |
@@ -94,6 +96,8 @@
 | records[].problems | array | 识别到的问题列表 |
 | records[].needs_param_update | boolean | 是否需要更新模型参数 |
 | records[].update_suggestion | string/null | 参数更新建议，无建议时为null |
+| records[].failure_reason | string/null | 失败原因代码：NO_RESULTS_FROM_ENGINE（搜索引擎无结果）、ALL_FILTERED（全部被过滤），正常时为null |
+| records[].failure_message | string/null | 失败原因说明，正常时为null |
 | records[].results | array | 该次搜索的结果列表 |
 | records[].results[].title | string | 搜索结果标题 |
 | records[].results[].url | string | 搜索结果链接 |

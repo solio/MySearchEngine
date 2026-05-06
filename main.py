@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 import asyncio
+import logging
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from api.search_service import SearchService
+from utils.logger import setup_logger
+
+# Initialize logger
+logger = setup_logger("mysearchengine", level=logging.INFO)
 
 
 def print_evaluation_stats(spam_stats: Dict):
@@ -73,7 +78,13 @@ def save_search_results(query: str, results: list, spam_stats: Dict, use_targete
         f.write(f"- 查询: {query}\n")
         f.write(f"- 时间: {now.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"- 模式: {'定向搜索' if use_targeted else '普通搜索'}\n")
-        f.write(f"- 结果数: {len(results)}\n\n")
+        f.write(f"- 结果数: {len(results)}\n")
+
+        # 记录失败原因（如果有）
+        if not results and spam_stats.get("failure_reason"):
+            f.write(f"- 失败原因: {spam_stats['failure_reason']}\n")
+            f.write(f"- 失败说明: {spam_stats['failure_message']}\n")
+        f.write("\n")
 
         f.write("## 评估统计\n\n")
         f.write(f"- 总结果数: {spam_stats['total']}\n")
@@ -234,13 +245,18 @@ async def batch_search(file_path: str, use_targeted: bool = False, use_mock: boo
             if results:
                 saved_path = save_search_results(name, results, spam_stats, use_targeted, debug=debug)
                 print(f"  成功！保存到：{saved_path}")
+                logger.info(f"搜索'{name}'成功，找到{len(results)}条结果")
                 success_count += 1
             else:
-                print(f"  未找到有效结果")
+                # 显示失败原因
+                failure_msg = spam_stats.get("failure_message", "未知原因")
+                print(f"  未找到有效结果 - {failure_msg}")
+                logger.warning(f"搜索'{name}'未找到有效结果: {failure_msg}")
                 fail_count += 1
 
         except Exception as e:
             print(f"  失败：{e}")
+            logger.error(f"搜索'{name}'发生异常: {e}", exc_info=True)
             fail_count += 1
 
     # 总结
