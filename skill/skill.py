@@ -170,7 +170,7 @@ def _parse_result_item(result: Dict[str, Any], lines: List[str], start_idx: int)
     return i
 
 
-def query_history(year: int, month: Optional[int] = None, day: Optional[int] = None) -> Dict[str, Any]:
+def query_history(year: int, month: Optional[int] = None, day: Optional[int] = None, query: Optional[str] = None) -> Dict[str, Any]:
     """
     查询历史搜索结果
 
@@ -178,6 +178,7 @@ def query_history(year: int, month: Optional[int] = None, day: Optional[int] = N
         year: 年份（必填）
         month: 月份（可选，1-12）
         day: 日期（可选，1-31，需要month存在）
+        query: 关键词（可选，个股名称或行业名称，模糊匹配）
 
     Returns:
         查询结果字典
@@ -187,6 +188,7 @@ def query_history(year: int, month: Optional[int] = None, day: Optional[int] = N
         "year": year,
         "month": month,
         "day": day,
+        "query_filter": query,
         "count": 0,
         "records": [],
     }
@@ -197,14 +199,14 @@ def query_history(year: int, month: Optional[int] = None, day: Optional[int] = N
         month_str = f"{month:02d}"
         day_str = f"{day:02d}"
         date_dir = base_path / f"{year}{month_str}{day_str}"
-        _scan_date_directory(date_dir, result)
+        _scan_date_directory(date_dir, result, query)
     elif month is not None:
         # 精确到月：遍历该月所有日目录
         for d in range(1, 32):
             month_str = f"{month:02d}"
             day_str = f"{d:02d}"
             date_dir = base_path / f"{year}{month_str}{day_str}"
-            _scan_date_directory(date_dir, result)
+            _scan_date_directory(date_dir, result, query)
     else:
         # 只提供年：遍历该年所有月日目录
         for m in range(1, 13):
@@ -212,19 +214,20 @@ def query_history(year: int, month: Optional[int] = None, day: Optional[int] = N
                 month_str = f"{m:02d}"
                 day_str = f"{d:02d}"
                 date_dir = base_path / f"{year}{month_str}{day_str}"
-                _scan_date_directory(date_dir, result)
+                _scan_date_directory(date_dir, result, query)
 
     result["count"] = len(result["records"])
     return result
 
 
-def _scan_date_directory(date_dir: Path, result: Dict[str, Any]) -> None:
+def _scan_date_directory(date_dir: Path, result: Dict[str, Any], query_filter: Optional[str] = None) -> None:
     """
     扫描指定日期目录并添加结果到result中
 
     Args:
         date_dir: 日期目录路径
         result: 结果字典，会修改其中的records字段
+        query_filter: 关键词过滤（可选）
     """
     if not date_dir.exists():
         return
@@ -233,7 +236,12 @@ def _scan_date_directory(date_dir: Path, result: Dict[str, Any]) -> None:
     for file_path in sorted(date_dir.glob("*搜索结果.md")):
         record = parse_search_result_file(file_path)
         if record:
-            result["records"].append(record)
+            # 如果有关键词过滤，只添加匹配的记录
+            if query_filter:
+                if query_filter.lower() in record.get("query", "").lower():
+                    result["records"].append(record)
+            else:
+                result["records"].append(record)
 
 
 def search(
@@ -299,7 +307,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
         print("  python skill.py search <query> [--targeted] [--debug] [--mock]")
-        print("  python skill.py history <year> [month] [day]")
+        print("  python skill.py history <year> [month] [day] [--query keyword]")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -319,18 +327,42 @@ if __name__ == "__main__":
 
     elif command == "history":
         if len(sys.argv) < 3:
-            print("Usage: python skill.py history <year> [month] [day]")
+            print("Usage: python skill.py history <year> [month] [day] [--query keyword]")
             sys.exit(1)
 
         try:
-            year = int(sys.argv[2])
-            month = int(sys.argv[3]) if len(sys.argv) > 3 else None
-            day = int(sys.argv[4]) if len(sys.argv) > 4 else None
+            # 解析位置参数
+            args = sys.argv[2:]
+            year = None
+            month = None
+            day = None
+            query = None
+
+            # 提取--query参数
+            if "--query" in args:
+                query_idx = args.index("--query")
+                if query_idx + 1 < len(args):
+                    query = args[query_idx + 1]
+                # 移除--query及其后面的参数，只处理前面的日期参数
+                args = args[:query_idx]
+
+            # 解析日期参数
+            if len(args) >= 1:
+                year = int(args[0])
+            if len(args) >= 2:
+                month = int(args[1])
+            if len(args) >= 3:
+                day = int(args[2])
+
+            if year is None:
+                print("Error: year is required")
+                sys.exit(1)
+
         except Exception:
             print("Error: year, month and day must be integers")
             sys.exit(1)
 
-        result = query_history(year, month, day)
+        result = query_history(year, month, day, query)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     else:
