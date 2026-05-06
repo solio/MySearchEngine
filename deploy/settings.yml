@@ -197,15 +197,15 @@ outgoing:
   # are also supported: see
   #   https://2.python-requests.org/en/latest/user/advanced/#socks
   #
-  # proxies:
-  #   all://:
-  #     - socks5://127.0.0.1:10795
+  proxies:
+    all://:
+      - socks5://127.0.0.1:10795
   #
   #  using_tor_proxy: true
   #
   # Extra seconds to add in order to account for the time taken by the proxy
   #
-  # extra_proxy_timeout: 10
+  extra_proxy_timeout: 20
   #
   # uncomment below section only if you have more than one network interface
   # which can be the source of outgoing search requests
