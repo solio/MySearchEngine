@@ -30,7 +30,15 @@ brew install --cask docker
 docker run -d -p 8080:8080 --name searxng searxng/searxng
 ```
 
-#### 3. 测试搜索
+#### 3. 配置SearXNG
+
+需要配置SearXNG允许JSON格式，进入容器修改配置文件：
+```bash
+docker exec searxng sed -i 's/# formats: \[html, csv, json, rss\]/formats: [html, json]/' /etc/searxng/settings.yml
+docker restart searxng
+```
+
+#### 4. 测试搜索
 
 ```bash
 pip install -r requirements.txt
@@ -67,6 +75,35 @@ python main.py "隆基绿能" --mock --debug
 python main.py "隆基绿能" --sites xueqiu.com,cls.cn --mock
 ```
 
+## Skill使用方法
+
+本项目已支持作为skill被其他agent调用。
+
+### 实时搜索
+
+```bash
+python skill.py search "隆基绿能" --targeted --debug --mock
+```
+
+### 查询历史搜索结果
+
+```bash
+# 查询2026年4月的历史搜索记录
+python skill.py history 2026 4
+```
+
+## 在代码中使用
+
+```python
+import skill
+
+# 实时搜索
+result = skill.search("隆基绿能", targeted=True, debug=True, use_mock=True)
+
+# 查询历史
+history = skill.query_history(year=2026, month=4)
+```
+
 ## 功能特性
 
 - 规则引擎快速过滤垃圾信息
@@ -75,6 +112,8 @@ python main.py "隆基绿能" --sites xueqiu.com,cls.cn --mock
 - 搜索结果评分重排序
 - 详细评估统计和debug模式
 - 多种搜索源自动降级（SearXNG → DuckDuckGo → Mock）
+- Skill支持，可被其他agent调用
+- 历史搜索结果查询能力
 
 ## 优质站点配置
 
@@ -82,3 +121,7 @@ python main.py "隆基绿能" --sites xueqiu.com,cls.cn --mock
 - 优质站点白名单
 - 垃圾关键词
 - URL模式匹配规则
+
+## Skill文档
+
+详细的skill使用文档请参考 [skill.md](skill.md)
