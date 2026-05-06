@@ -1,13 +1,16 @@
 import httpx
+import logging
 from typing import List
 from urllib.parse import urlparse, quote
 import re
 
 from models.search_result import SearchResult
 
+logger = logging.getLogger("mysearchengine.duckduckgo_client")
+
 
 class DuckDuckGoClient:
-    def __init__(self, timeout: int = 40):
+    def __init__(self, timeout: int = 8):
         self.timeout = timeout
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -23,13 +26,24 @@ class DuckDuckGoClient:
     ) -> List[SearchResult]:
         try:
             # 先用DuckDuckGo API试试
+            logger.debug(f"Searching DuckDuckGo API for: {query}")
             results = await self._search_api(query, num_results)
             if results:
+                logger.info(f"Found {len(results)} results from DuckDuckGo API for: {query}")
                 return results
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error from DuckDuckGo for '{query}': {e.response.status_code} - {e}", exc_info=True)
+        except httpx.ConnectError as e:
+            logger.error(f"Network connection error from DuckDuckGo for '{query}': {e}", exc_info=True)
+        except httpx.TimeoutException as e:
+            logger.error(f"Timeout error from DuckDuckGo for '{query}': {e}", exc_info=True)
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error from DuckDuckGo for '{query}': {e}", exc_info=True)
         except Exception as e:
-            print(f"DuckDuckGo API failed: {e}")
+            logger.error(f"Unexpected error from DuckDuckGo for '{query}': {e}", exc_info=True)
 
         # API不行的话，先返回一些模拟数据演示
+        logger.info(f"Falling back to mock results for: {query}")
         return self._get_mock_results(query)
 
     async def _search_api(self, query: str, num_results: int) -> List[SearchResult]:

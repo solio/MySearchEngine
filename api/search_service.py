@@ -26,9 +26,51 @@ class SearchService:
         if use_mock:
             self.client = MockClient()
             logger.info("使用Mock搜索模式")
+            self.primary_client = None
+            self.fallback_client = None
         else:
-            self.client = SearXNGClient(searxng_url)
-            logger.info("使用SearXNG搜索")
+            self.primary_client = SearXNGClient(searxng_url)
+            self.fallback_client = DuckDuckGoClient()
+            self.client = self.primary_client
+            logger.info("使用SearXNG搜索（DuckDuckGo作为备用）")
+
+    async def _search_with_client(
+        self,
+        client,
+        query: str,
+        num_results: int = 20,
+        time_range: Optional[str] = "month",
+        use_quality_sites_only: bool = False,
+    ) -> List[SearchResult]:
+        tasks = []
+
+        if use_quality_sites_only:
+            for site in self.config.quality_sites:
+                tasks.append(
+                    client.search_site(query, site.domain, num_results=5, time_range=time_range)
+                )
+        else:
+            tasks.append(client.search(query, num_results, time_range=time_range))
+
+            for site in self.config.quality_sites:
+                tasks.append(
+                    client.search_site(query, site.domain, num_results=3, time_range=time_range)
+                )
+
+        all_results = []
+        seen_urls = set()
+
+        results_list = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, results in enumerate(results_list):
+            if isinstance(results, Exception):
+                logger.warning(f"搜索任务{i}失败: {results}", exc_info=True)
+                continue
+            for result in results:
+                if result.url not in seen_urls:
+                    seen_urls.add(result.url)
+                    all_results.append(result)
+
+        return all_results
 
     async def search(
         self,
@@ -39,35 +81,31 @@ class SearchService:
         debug: bool = False,
     ) -> tuple[List[SearchResult], Dict]:
         logger.info(f"开始搜索: '{query}', 模式: {'仅优质站点' if use_quality_sites_only else '普通'}")
-        tasks = []
 
-        if use_quality_sites_only:
-            for site in self.config.quality_sites:
-                tasks.append(
-                    self.client.search_site(query, site.domain, num_results=5, time_range=time_range)
-                )
-            logger.debug(f"在{len(self.config.quality_sites)}个优质站点上搜索")
-        else:
-            tasks.append(self.client.search(query, num_results, time_range=time_range))
-
-            for site in self.config.quality_sites:
-                tasks.append(
-                    self.client.search_site(query, site.domain, num_results=3, time_range=time_range)
-                )
-            logger.debug(f"全网搜索 + 在{len(self.config.quality_sites)}个优质站点上搜索")
-
+        # 先用主客户端
         all_results = []
-        seen_urls = set()
+        if self.primary_client:
+            logger.debug("尝试主客户端 (SearXNG)")
+            all_results = await self._search_with_client(
+                self.primary_client, query, num_results, time_range, use_quality_sites_only
+            )
+            logger.info(f"主客户端返回: {len(all_results)}条结果")
 
-        results_list = await asyncio.gather(*tasks, return_exceptions=True)
-        for i, results in enumerate(results_list):
-            if isinstance(results, Exception):
-                logger.warning(f"搜索任务{i}失败: {results}")
-                continue
-            for result in results:
-                if result.url not in seen_urls:
-                    seen_urls.add(result.url)
-                    all_results.append(result)
+        # 如果主客户端没有结果，尝试备用客户端
+        if len(all_results) == 0 and self.fallback_client:
+            logger.warning("主客户端无结果，尝试备用客户端 (DuckDuckGo)")
+            all_results = await self._search_with_client(
+                self.fallback_client, query, num_results, time_range, use_quality_sites_only
+            )
+            logger.info(f"备用客户端返回: {len(all_results)}条结果")
+
+        # 如果都没结果，用mock
+        if len(all_results) == 0 and self.primary_client:
+            logger.warning("所有客户端都无结果，使用Mock")
+            mock_client = MockClient()
+            all_results = await self._search_with_client(
+                mock_client, query, num_results, time_range, use_quality_sites_only
+            )
 
         logger.info(f"原始搜索结果: {len(all_results)}条")
         filtered, spam_stats = self.rule_engine.filter_and_score(all_results, debug)
@@ -77,6 +115,35 @@ class SearchService:
             logger.warning(f"搜索结果异常: {spam_stats['failure_message']}")
 
         return filtered[:num_results], spam_stats
+
+    async def _targeted_search_with_client(
+        self,
+        client,
+        query: str,
+        sites: List[str],
+        num_results: int = 20,
+        time_range: Optional[str] = "month",
+    ) -> List[SearchResult]:
+        tasks = []
+        for site in sites:
+            tasks.append(
+                client.search_site(query, site, num_results=5, time_range=time_range)
+            )
+
+        all_results = []
+        seen_urls = set()
+
+        results_list = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, results in enumerate(results_list):
+            if isinstance(results, Exception):
+                logger.warning(f"站点搜索任务{i}失败: {results}", exc_info=True)
+                continue
+            for result in results:
+                if result.url not in seen_urls:
+                    seen_urls.add(result.url)
+                    all_results.append(result)
+
+        return all_results
 
     async def targeted_search(
         self,
@@ -91,24 +158,31 @@ class SearchService:
             sites = [site.domain for site in self.config.quality_sites]
 
         logger.debug(f"在{len(sites)}个站点上搜索")
-        tasks = []
-        for site in sites:
-            tasks.append(
-                self.client.search_site(query, site, num_results=5, time_range=time_range)
-            )
 
+        # 先用主客户端
         all_results = []
-        seen_urls = set()
+        if self.primary_client:
+            logger.debug("尝试主客户端 (SearXNG)")
+            all_results = await self._targeted_search_with_client(
+                self.primary_client, query, sites, num_results, time_range
+            )
+            logger.info(f"主客户端返回: {len(all_results)}条结果")
 
-        results_list = await asyncio.gather(*tasks, return_exceptions=True)
-        for i, results in enumerate(results_list):
-            if isinstance(results, Exception):
-                logger.warning(f"站点搜索任务{i}失败: {results}")
-                continue
-            for result in results:
-                if result.url not in seen_urls:
-                    seen_urls.add(result.url)
-                    all_results.append(result)
+        # 如果主客户端没有结果，尝试备用客户端
+        if len(all_results) == 0 and self.fallback_client:
+            logger.warning("主客户端无结果，尝试备用客户端 (DuckDuckGo)")
+            all_results = await self._targeted_search_with_client(
+                self.fallback_client, query, sites, num_results, time_range
+            )
+            logger.info(f"备用客户端返回: {len(all_results)}条结果")
+
+        # 如果都没结果，用mock
+        if len(all_results) == 0 and self.primary_client:
+            logger.warning("所有客户端都无结果，使用Mock")
+            mock_client = MockClient()
+            all_results = await self._targeted_search_with_client(
+                mock_client, query, sites, num_results, time_range
+            )
 
         logger.info(f"原始搜索结果: {len(all_results)}条")
         filtered, spam_stats = self.rule_engine.filter_and_score(all_results, debug)
