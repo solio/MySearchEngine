@@ -2,7 +2,7 @@
 quality_sites:
   - domain: xueqiu.com
     name: 雪球
-    weight: 1.5
+    weight: 2
     type: forum
     trust_level: high
     url_patterns:
@@ -16,7 +16,7 @@ quality_sites:
 
   - domain: guba.eastmoney.com
     name: 股吧
-    weight: 1.2
+    weight: 2.2
     type: forum
     trust_level: medium
     url_patterns:
@@ -29,7 +29,7 @@ quality_sites:
 
   - domain: cls.cn
     name: 财联社
-    weight: 1.8
+    weight: 2
     type: news
     trust_level: high
 
@@ -41,7 +41,7 @@ quality_sites:
 
   - domain: yicai.com
     name: 第一财经
-    weight: 1.6
+    weight: 2
     type: news
     trust_level: high
 
@@ -71,7 +71,7 @@ quality_sites:
 
   - domain: zhihu.com
     name: 知乎
-    weight: 1.2
+    weight: 0.7
     type: qna
     trust_level: medium
     url_patterns:
