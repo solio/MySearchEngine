@@ -178,9 +178,9 @@ ui:
 #
 outgoing:
   # default timeout in seconds, can be override by engine
-  request_timeout: 3.0
+  request_timeout: 10.0
   # the maximum timeout in seconds
-  # max_request_timeout: 10.0
+  max_request_timeout: 20.0
   # suffix of searxng_useragent, could contain information like an email address
   # to the administrator
   useragent_suffix: ""
@@ -201,16 +201,15 @@ outgoing:
   # are also supported: see
   #   https://2.python-requests.org/en/latest/user/advanced/#socks
   #
-  #  proxies:
-  #    all://:
-  #      - http://proxy1:8080
-  #      - http://proxy2:8080
+  proxies:
+    all://:
+      - socks5://host.docker.internal:10795
   #
   #  using_tor_proxy: true
   #
   # Extra seconds to add in order to account for the time taken by the proxy
   #
-  #  extra_proxy_timeout: 10
+  extra_proxy_timeout: 20
   #
   # uncomment below section only if you have more than one network interface
   # which can be the source of outgoing search requests
@@ -224,10 +223,6 @@ outgoing:
 # Plugin configuration, for more details see
 #   https://docs.searxng.org/admin/settings/settings_plugins.html
 #
-  proxies:
-    all://:
-      - socks5://host.docker.internal:10795
-  extra_proxy_timeout: 20
 
 plugins:
 

@@ -185,9 +185,9 @@ def load_search_list(file_path: str) -> List[Tuple[str, str, bool]]:
     return search_list
 
 
-async def single_search(query: str, use_targeted: bool = False, sites: List[str] = None, use_mock: bool = False, debug: bool = False):
+async def single_search(query: str, use_targeted: bool = False, sites: List[str] = None, debug: bool = False):
     """单个搜索"""
-    service = SearchService(use_mock=use_mock)
+    service = SearchService()
 
     print(f"搜索: {query}")
     print("-" * 80)
@@ -210,7 +210,7 @@ async def single_search(query: str, use_targeted: bool = False, sites: List[str]
         print(f"结果已保存到: {filepath}")
 
 
-async def batch_search(file_path: str, use_targeted: bool = False, use_mock: bool = False, debug: bool = False):
+async def batch_search(file_path: str, use_targeted: bool = False, debug: bool = False):
     """批量搜索"""
     # 加载搜索列表（股票+行业）
     search_list = load_search_list(file_path)
@@ -225,7 +225,7 @@ async def batch_search(file_path: str, use_targeted: bool = False, use_mock: boo
     print("-" * 60)
 
     # 创建搜索服务
-    service = SearchService(use_mock=use_mock)
+    service = SearchService()
 
     # 逐个搜索
     success_count = 0
@@ -271,32 +271,26 @@ async def batch_search(file_path: str, use_targeted: bool = False, use_mock: boo
 async def main():
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  单个搜索: python main.py <query> [--targeted] [--sites site1,site2] [--mock] [--debug]")
-        print("  批量搜索: python main.py --file <search_list_file> [--targeted] [--mock] [--debug]")
-        print("\n示例:")
-        print("  python main.py 隆基绿能 --mock")
-        print("  python main.py 光伏 --mock")
-        print("  python main.py --file example_stocks.txt --mock --targeted")
+        print("  单个搜索: python main.py <query> [--targeted] [--sites site1,site2] [--debug]")
+        print("  批量搜索: python main.py --file <search_list_file> [--targeted] [--debug]")
         return
 
     # 检查是否是批量搜索模式
     if sys.argv[1] == "--file":
         if len(sys.argv) < 3:
             print("错误：--file 参数需要指定文件路径")
-            print("Usage: python main.py --file <stock_list_file> [--targeted] [--mock] [--debug]")
+            print("Usage: python main.py --file <stock_list_file> [--targeted] [--debug]")
             return
 
         file_path = sys.argv[2]
         use_targeted = "--targeted" in sys.argv
-        use_mock = "--mock" in sys.argv
         debug = "--debug" in sys.argv
 
-        await batch_search(file_path, use_targeted, use_mock, debug)
+        await batch_search(file_path, use_targeted, debug)
     else:
         # 单个搜索模式
         query = sys.argv[1]
         use_targeted = "--targeted" in sys.argv
-        use_mock = "--mock" in sys.argv
         debug = "--debug" in sys.argv
 
         sites = None
@@ -305,7 +299,7 @@ async def main():
             if idx + 1 < len(sys.argv):
                 sites = sys.argv[idx + 1].split(",")
 
-        await single_search(query, use_targeted, sites, use_mock, debug)
+        await single_search(query, use_targeted, sites, debug)
 
 
 if __name__ == "__main__":

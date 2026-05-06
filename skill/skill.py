@@ -290,7 +290,6 @@ def search(
     query: str,
     targeted: bool = False,
     debug: bool = False,
-    use_mock: bool = False,
 ) -> Dict[str, Any]:
     """
     实时搜索
@@ -299,12 +298,11 @@ def search(
         query: 搜索关键词
         targeted: 是否定向搜索（仅优质站点）
         debug: 是否返回详细评估信息
-        use_mock: 是否使用mock模式
 
     Returns:
         搜索结果字典
     """
-    service = SearchService(use_mock=use_mock)
+    service = SearchService()
 
     if targeted:
         results, spam_stats = asyncio.run(service.targeted_search(query, debug=debug))
@@ -355,7 +353,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python skill.py search <query> [--targeted] [--debug] [--mock]")
+        print("  python skill.py search <query> [--targeted] [--debug]")
         print("  python skill.py history <year> [month] [day] [--query keyword]")
         sys.exit(1)
 
@@ -363,15 +361,14 @@ if __name__ == "__main__":
 
     if command == "search":
         if len(sys.argv) < 3:
-            print("Usage: python skill.py search <query> [--targeted] [--debug] [--mock]")
+            print("Usage: python skill.py search <query> [--targeted] [--debug]")
             sys.exit(1)
 
         query = sys.argv[2]
         targeted = "--targeted" in sys.argv
         debug = "--debug" in sys.argv
-        use_mock = "--mock" in sys.argv
 
-        result = search(query, targeted, debug, use_mock)
+        result = search(query, targeted, debug)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     elif command == "history":
