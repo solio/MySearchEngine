@@ -15,14 +15,41 @@ def print_evaluation_stats(spam_stats: Dict):
     print(f"总结果数: {spam_stats['total']}")
     print(f"保留结果: {spam_stats['passed']}")
     print(f"过滤结果: {spam_stats['filtered']}")
-    print(f"过滤率: {spam_stats['filtered']/max(spam_stats['total'],1)*100:.1f}%")
+    filter_rate = spam_stats['filtered'] / max(spam_stats['total'], 1)
+    print(f"过滤率: {filter_rate*100:.1f}%")
 
-    if spam_stats['reasons']:
+    # 输出详细过滤原因
+    if spam_stats.get('reasons'):
         print("\n过滤原因统计:")
         for reason, count in spam_stats['reasons'].items():
             print(f"  - {reason}: {count}条")
 
-    if spam_stats['needs_param_update']:
+    # 输出问题统计
+    if spam_stats.get('problems'):
+        print("\n识别的问题:")
+        for problem in spam_stats['problems']:
+            print(f"  ❌ {problem}")
+
+    # 输出问题样例
+    if spam_stats.get('problem_samples'):
+        print("\n问题样例:")
+        for reason, samples in spam_stats['problem_samples'].items():
+            print(f"\n  【{reason}】样例:")
+            for i, sample in enumerate(samples, 1):
+                print(f"    {i}. {sample['title']}")
+                print(f"       {sample['url'][:60]}..." if len(sample['url']) > 60 else f"       {sample['url']}")
+
+    # 输出详细统计
+    print(f"\n详细统计:")
+    if 'total_spam_keywords' in spam_stats:
+        avg_keywords = spam_stats['total_spam_keywords'] / max(spam_stats['total'], 1)
+        print(f"  - 垃圾关键词总数: {spam_stats['total_spam_keywords']} (平均{avg_keywords:.1f}个/条)")
+    if 'bad_url_count' in spam_stats:
+        print(f"  - 垃圾URL数量: {spam_stats['bad_url_count']}")
+    if 'low_quality_count' in spam_stats:
+        print(f"  - 低质量内容数量: {spam_stats['low_quality_count']}")
+
+    if spam_stats.get('needs_param_update'):
         print("\n⚠️  模型参数建议:")
         print(f"   {spam_stats['update_suggestion']}")
     else:
@@ -52,14 +79,40 @@ def save_search_results(query: str, results: list, spam_stats: Dict, use_targete
         f.write(f"- 总结果数: {spam_stats['total']}\n")
         f.write(f"- 保留结果: {spam_stats['passed']}\n")
         f.write(f"- 过滤结果: {spam_stats['filtered']}\n")
-        f.write(f"- 过滤率: {spam_stats['filtered']/max(spam_stats['total'],1)*100:.1f}%\n")
+        filter_rate = spam_stats['filtered'] / max(spam_stats['total'], 1)
+        f.write(f"- 过滤率: {filter_rate*100:.1f}%\n")
 
-        if spam_stats['reasons']:
+        # 详细统计
+        if spam_stats.get('total_spam_keywords') is not None:
+            avg_keywords = spam_stats['total_spam_keywords'] / max(spam_stats['total'], 1)
+            f.write(f"- 垃圾关键词总数: {spam_stats['total_spam_keywords']} (平均{avg_keywords:.1f}个/条)\n")
+        if spam_stats.get('bad_url_count') is not None:
+            f.write(f"- 垃圾URL数量: {spam_stats['bad_url_count']}\n")
+        if spam_stats.get('low_quality_count') is not None:
+            f.write(f"- 低质量内容数量: {spam_stats['low_quality_count']}\n")
+
+        if spam_stats.get('reasons'):
             f.write("\n### 过滤原因\n\n")
             for reason, count in spam_stats['reasons'].items():
                 f.write(f"- {reason}: {count}条\n")
 
-        if spam_stats['needs_param_update']:
+        # Debug模式：输出识别的问题和样例
+        if debug:
+            if spam_stats.get('problems'):
+                f.write("\n### 识别的问题\n\n")
+                for problem in spam_stats['problems']:
+                    f.write(f"- ❌ {problem}\n")
+
+            if spam_stats.get('problem_samples'):
+                f.write("\n### 问题样例\n\n")
+                for reason, samples in spam_stats['problem_samples'].items():
+                    f.write(f"\n#### {reason}\n\n")
+                    for i, sample in enumerate(samples, 1):
+                        f.write(f"{i}. {sample['title']}\n")
+                        f.write(f"   URL: {sample['url']}\n")
+                        f.write(f"   评分: {sample['score']:.1f}\n\n")
+
+        if spam_stats.get('needs_param_update'):
             f.write("\n### ⚠️ 参数更新建议\n\n")
             f.write(f"{spam_stats['update_suggestion']}\n")
 

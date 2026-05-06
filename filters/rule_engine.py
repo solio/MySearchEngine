@@ -187,6 +187,11 @@ class RuleEngine:
             "filtered": 0,
             "reasons": {},
             "needs_param_update": False,
+            "problem_samples": {},
+            "total_spam_keywords": 0,
+            "bad_url_count": 0,
+            "low_quality_count": 0,
+            "problems": [],
         }
 
         for result in results:
@@ -195,21 +200,71 @@ class RuleEngine:
             result.is_spam = is_spam
             result.spam_reason = spam_reason
 
+            # 收集问题统计
+            if debug_info.get("spam_keyword_count", 0) > 0:
+                spam_stats["total_spam_keywords"] += debug_info["spam_keyword_count"]
+
             if is_spam:
                 spam_stats["filtered"] += 1
                 if spam_reason:
                     spam_stats["reasons"][spam_reason] = spam_stats["reasons"].get(spam_reason, 0) + 1
+
+                    # 记录问题样例（每个原因最多3个）
+                    if spam_reason not in spam_stats["problem_samples"]:
+                        spam_stats["problem_samples"][spam_reason] = []
+                    if len(spam_stats["problem_samples"][spam_reason]) < 3:
+                        spam_stats["problem_samples"][spam_reason].append({
+                            "title": result.title[:50] + "..." if len(result.title) > 50 else result.title,
+                            "url": result.url,
+                            "score": score,
+                        })
+
+                    # 统计具体问题类型
+                    if "垃圾URL" in spam_reason:
+                        spam_stats["bad_url_count"] += 1
+                    elif "垃圾关键词" in spam_reason:
+                        pass
+                    elif "综合评分过低" in spam_reason:
+                        spam_stats["low_quality_count"] += 1
             else:
                 spam_stats["passed"] += 1
                 scored.append(result)
 
+        # 分析问题并生成建议
+        problems = []
+        suggestions = []
+
+        # 检查过滤率
+        filter_rate = spam_stats["filtered"] / max(spam_stats["total"], 1)
+        if filter_rate > 0.7:
+            problems.append(f"过滤率过高：{filter_rate*100:.1f}%")
+            suggestions.append("建议：减少垃圾关键词或放宽URL模式限制")
+        elif filter_rate < 0.1 and spam_stats["total"] >= 5:
+            problems.append(f"过滤率过低：{filter_rate*100:.1f}%")
+            suggestions.append("建议：增加垃圾关键词或严格URL模式限制")
+
+        # 检查垃圾URL数量
+        if spam_stats["bad_url_count"] > spam_stats["total"] * 0.3:
+            problems.append(f"垃圾URL过多：{spam_stats['bad_url_count']}个")
+            suggestions.append("建议：检查并更新垃圾URL模式配置")
+
+        # 检查低质量内容数量
+        if spam_stats["low_quality_count"] > spam_stats["total"] * 0.4:
+            problems.append(f"低质量内容过多：{spam_stats['low_quality_count']}个")
+            suggestions.append("建议：调整评分阈值或增加质量检查规则")
+
+        # 检查垃圾关键词密度
+        avg_spam_keywords = spam_stats["total_spam_keywords"] / max(spam_stats["total"], 1)
+        if avg_spam_keywords > 1.5:
+            problems.append(f"垃圾关键词密度较高：平均{avg_spam_keywords:.1f}个/条")
+            suggestions.append("建议：考虑增加更多相关的垃圾关键词")
+
+        spam_stats["problems"] = problems
+
         # 检查是否需要更新参数
-        if spam_stats["filtered"] > spam_stats["total"] * 0.5:
+        if len(problems) > 0:
             spam_stats["needs_param_update"] = True
-            spam_stats["update_suggestion"] = "过滤比例超过50%，建议检查垃圾关键词或URL模式是否过严"
-        elif spam_stats["filtered"] == 0 and len(results) >= 3:
-            spam_stats["needs_param_update"] = True
-            spam_stats["update_suggestion"] = "未过滤任何结果，建议检查垃圾关键词是否过松"
+            spam_stats["update_suggestion"] = "\n".join(suggestions) if suggestions else "建议检查过滤规则配置"
 
         scored.sort(key=lambda x: x.score, reverse=True)
         return scored, spam_stats

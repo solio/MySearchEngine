@@ -40,6 +40,12 @@ def parse_search_result_file(file_path: Path) -> Optional[Dict[str, Any]]:
             "filtered_results": 0,
             "filter_rate": "",
             "filter_reasons": {},
+            "total_spam_keywords": 0,
+            "bad_url_count": 0,
+            "low_quality_count": 0,
+            "problems": [],
+            "needs_param_update": False,
+            "update_suggestion": None,
             "results": [],
         }
 
@@ -83,6 +89,31 @@ def parse_search_result_file(file_path: Path) -> Optional[Dict[str, Any]]:
                     pass
             elif line.startswith("- 过滤率:"):
                 result["filter_rate"] = line[len("- 过滤率:") :].strip()
+            elif line.startswith("- 垃圾关键词总数:"):
+                try:
+                    # 提取数字部分
+                    import re
+                    match = re.search(r"\d+", line)
+                    if match:
+                        result["total_spam_keywords"] = int(match.group())
+                except Exception:
+                    pass
+            elif line.startswith("- 垃圾URL数量:"):
+                try:
+                    import re
+                    match = re.search(r"\d+", line)
+                    if match:
+                        result["bad_url_count"] = int(match.group())
+                except Exception:
+                    pass
+            elif line.startswith("- 低质量内容数量:"):
+                try:
+                    import re
+                    match = re.search(r"\d+", line)
+                    if match:
+                        result["low_quality_count"] = int(match.group())
+                except Exception:
+                    pass
 
             # 解析过滤原因
             elif line.startswith("- ") and "条" in line and ":" in line:
@@ -280,6 +311,11 @@ def search(
         "filtered_results": spam_stats.get("filtered", 0),
         "filter_rate": f"{spam_stats.get('filtered', 0)/max(spam_stats.get('total', 1), 1)*100:.1f}%",
         "filter_reasons": spam_stats.get("reasons", {}),
+        "total_spam_keywords": spam_stats.get("total_spam_keywords", 0),
+        "bad_url_count": spam_stats.get("bad_url_count", 0),
+        "low_quality_count": spam_stats.get("low_quality_count", 0),
+        "problems": spam_stats.get("problems", []),
+        "needs_param_update": spam_stats.get("needs_param_update", False),
         "param_update_suggestion": spam_stats.get("update_suggestion") if spam_stats.get("needs_param_update") else None,
         "results": [],
     }
