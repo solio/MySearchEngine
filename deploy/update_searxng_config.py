@@ -9,56 +9,65 @@ import re
 config_file = Path("settings.yml")
 content = config_file.read_text(encoding="utf-8")
 
-# Engines to keep enabled
-enabled_engines = {"google", "google news"}
-
+# Find the engines section
 lines = content.split("\n")
-new_lines = []
-i = 0
-in_engines_section = False
 
-while i < len(lines):
+# Find engines section start and end
+engines_start = -1
+engines_end = -1
+in_engines = False
+
+for i, line in enumerate(lines):
+    stripped = line.strip()
+    if stripped == "engines:":
+        engines_start = i
+        in_engines = True
+    elif in_engines and re.match(r'^\w+:$', stripped) and not stripped.startswith("-"):
+        engines_end = i
+        break
+
+if engines_start == -1:
+    print("Error: engines section not found")
+    exit(1)
+
+# Now find the google and google news engine definitions
+enabled_engines = {"google", "google news"}
+engine_definitions = {}
+current_engine = None
+current_lines = []
+
+for i in range(engines_start + 1, engines_end if engines_end != -1 else len(lines)):
     line = lines[i]
     stripped = line.strip()
 
-    # Check if we're entering the engines section
-    if stripped == "engines:":
-        in_engines_section = True
-        new_lines.append(line)
-        i += 1
-        continue
+    if stripped.startswith("- name: "):
+        if current_engine:
+            engine_definitions[current_engine] = current_lines
+        current_engine = stripped[len("- name: "):]
+        current_lines = [line]
+    elif current_engine:
+        current_lines.append(line)
 
-    # If we're in engines section and see another top-level section, exit
-    if in_engines_section and re.match(r'^\w+:$', stripped):
-        in_engines_section = False
+# Add the last engine
+if current_engine:
+    engine_definitions[current_engine] = current_lines
 
-    new_lines.append(line)
+# Now build the new config
+new_lines = lines[:engines_start + 1]
 
-    # If we're in engines section and found an engine name, process it
-    if in_engines_section and stripped.startswith("- name: "):
-        engine_name = stripped[len("- name: "):]
+# Add only the enabled engines
+for engine_name in enabled_engines:
+    if engine_name in engine_definitions:
+        # Make sure there's no disabled: true line
+        cleaned = []
+        for line in engine_definitions[engine_name]:
+            if not line.strip().startswith("disabled: true"):
+                cleaned.append(line)
+        new_lines.extend(cleaned)
 
-        # Look ahead to see if there's already a disabled line
-        has_disabled = False
-        j = i + 1
-        while j < len(lines):
-            next_line = lines[j]
-            next_stripped = next_line.strip()
-            # Stop when we hit next engine or end of section
-            if next_stripped.startswith("- name: ") or re.match(r'^\w+:$', next_stripped):
-                break
-            if next_stripped.startswith("disabled: "):
-                has_disabled = True
-                break
-            j += 1
-
-        # Add disabled: true if not already present and not in enabled list
-        if not has_disabled and engine_name not in enabled_engines:
-            # Find the indentation level
-            indent = re.match(r'(\s*)- name:', line).group(1)
-            new_lines.append(f"{indent}  disabled: true")
-
-    i += 1
+# Add the rest of the config
+if engines_end != -1:
+    new_lines.extend(lines[engines_end:])
 
 # Save the output
 config_file.write_text("\n".join(new_lines), encoding="utf-8")
