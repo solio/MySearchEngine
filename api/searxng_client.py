@@ -1,7 +1,7 @@
 import httpx
 import logging
 from typing import List, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
 
 from models.search_result import SearchResult
 
@@ -20,19 +20,23 @@ class SearXNGClient:
         language: str = "zh-CN",
         time_range: Optional[str] = None,
     ) -> List[SearchResult]:
-        data = {
+        params = {
             "q": query,
             "format": "json",
             "language": language,
         }
 
         if time_range:
-            data["time_range"] = time_range
+            params["time_range"] = time_range
 
         try:
             logger.debug(f"Requesting search from {self.base_url} for query: {query}")
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/search", data=data)
+                response = await client.get(
+                    f"{self.base_url}/search",
+                    params=params,
+                    follow_redirects=True
+                )
                 logger.debug(f"Response status: {response.status_code}")
                 response.raise_for_status()
                 data = response.json()
@@ -58,7 +62,7 @@ class SearXNGClient:
             return []
         except httpx.ConnectError as e:
             logger.error(f"Network connection error searching for '{query}': {e}", exc_info=True)
-            logger.error("Please check if SearXNG is running at {self.base_url}")
+            logger.error(f"Please check if SearXNG is running at {self.base_url}")
             return []
         except httpx.TimeoutException as e:
             logger.error(f"Request timeout searching for '{query}': {e}", exc_info=True)
