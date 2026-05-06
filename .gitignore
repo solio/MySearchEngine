@@ -4,3 +4,5 @@ __pycache__/
 .claude/
 *.pyc
 search_results/
+stocks.txt
+stocks*.txt

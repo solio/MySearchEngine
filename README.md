@@ -75,21 +75,43 @@ python main.py "隆基绿能" --mock --debug
 python main.py "隆基绿能" --sites xueqiu.com,cls.cn --mock
 ```
 
+### 批量投研
+
+先创建股票列表文件（格式：`股票代码|股票名称`，每行一个）：
+
+```
+601012|隆基绿能
+002594|比亚迪
+300750|宁德时代
+```
+
+然后执行批量搜索：
+
+```bash
+python batch.py --file example_stocks.txt --mock
+```
+
+使用定向搜索：
+
+```bash
+python batch.py --file example_stocks.txt --targeted --mock --debug
+```
+
 ## Skill使用方法
 
-本项目已支持作为skill被其他agent调用。
+本项目已支持作为skill被其他agent调用，skill文件位于 `skill/` 子目录。
 
 ### 实时搜索
 
 ```bash
-python skill.py search "隆基绿能" --targeted --debug --mock
+python -m skill search "隆基绿能" --targeted --debug --mock
 ```
 
 ### 查询历史搜索结果
 
 ```bash
 # 查询2026年4月的历史搜索记录
-python skill.py history 2026 4
+python -m skill history 2026 4
 ```
 
 ## 在代码中使用
@@ -114,6 +136,7 @@ history = skill.query_history(year=2026, month=4)
 - 多种搜索源自动降级（SearXNG → DuckDuckGo → Mock）
 - Skill支持，可被其他agent调用
 - 历史搜索结果查询能力
+- 批量投研功能，支持按股票列表批量搜索
 
 ## 优质站点配置
 
@@ -124,4 +147,4 @@ history = skill.query_history(year=2026, month=4)
 
 ## Skill文档
 
-详细的skill使用文档请参考 [skill.md](skill.md)
+详细的skill使用文档请参考 [skill/skill.md](skill/skill.md)
