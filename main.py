@@ -86,19 +86,21 @@ def save_search_results(query: str, results: list, spam_stats: Dict, use_targete
     return filepath
 
 
-def load_stock_list(file_path: str) -> List[Tuple[str, str]]:
+def load_search_list(file_path: str) -> List[Tuple[str, str, bool]]:
     """
-    读取股票列表文件
+    读取搜索列表文件
 
-    文件格式：每行一个股票，格式为「股票代码|股票名称」
+    文件格式：
+    - 个股：每行一个股票，格式为「股票代码|股票名称」
+    - 行业：每行一个行业，格式为「行业|行业名称」
 
     Args:
         file_path: 文件路径
 
     Returns:
-        (股票代码, 股票名称)列表
+        (标识, 名称, 是否行业)列表，标识对于股票是代码，对于行业是"行业"
     """
-    stock_list = []
+    search_list = []
     path = Path(file_path)
 
     if not path.exists():
@@ -110,10 +112,13 @@ def load_stock_list(file_path: str) -> List[Tuple[str, str]]:
         line = line.strip()
         if not line or "|" not in line:
             continue
-        code, name = line.split("|", 1)
-        stock_list.append((code.strip(), name.strip()))
+        prefix, name = line.split("|", 1)
+        prefix = prefix.strip()
+        name = name.strip()
+        is_industry = prefix == "行业"
+        search_list.append((prefix, name, is_industry))
 
-    return stock_list
+    return search_list
 
 
 async def single_search(query: str, use_targeted: bool = False, sites: List[str] = None, use_mock: bool = False, debug: bool = False):
@@ -143,13 +148,16 @@ async def single_search(query: str, use_targeted: bool = False, sites: List[str]
 
 async def batch_search(file_path: str, use_targeted: bool = False, use_mock: bool = False, debug: bool = False):
     """批量搜索"""
-    # 加载股票列表
-    stock_list = load_stock_list(file_path)
-    if not stock_list:
-        print("错误：未读取到有效的股票列表")
+    # 加载搜索列表（股票+行业）
+    search_list = load_search_list(file_path)
+    if not search_list:
+        print("错误：未读取到有效的搜索列表")
         sys.exit(1)
 
-    print(f"已加载 {len(stock_list)} 只股票")
+    # 统计股票和行业数量
+    stock_count = sum(1 for _, _, is_industry in search_list if not is_industry)
+    industry_count = sum(1 for _, _, is_industry in search_list if is_industry)
+    print(f"已加载 {stock_count} 只股票，{industry_count} 个行业")
     print("-" * 60)
 
     # 创建搜索服务
@@ -159,8 +167,10 @@ async def batch_search(file_path: str, use_targeted: bool = False, use_mock: boo
     success_count = 0
     fail_count = 0
 
-    for code, name in stock_list:
-        print(f"[{success_count+fail_count+1}/{len(stock_list)}] 正在搜索：{name}({code})")
+    for prefix, name, is_industry in search_list:
+        type_label = "行业" if is_industry else "股票"
+        display_name = f"{name}" if is_industry else f"{name}({prefix})"
+        print(f"[{success_count+fail_count+1}/{len(search_list)}] 正在搜索{type_label}：{display_name}")
 
         try:
             if use_targeted:
@@ -183,7 +193,7 @@ async def batch_search(file_path: str, use_targeted: bool = False, use_mock: boo
     # 总结
     print("\n" + "=" * 60)
     print(f"批量搜索完成")
-    print(f"  总股票数：{len(stock_list)}")
+    print(f"  总数：{len(search_list)} (股票{stock_count} + 行业{industry_count})")
     print(f"  成功：{success_count}")
     print(f"  失败：{fail_count}")
     print("=" * 60)
@@ -193,9 +203,10 @@ async def main():
     if len(sys.argv) < 2:
         print("Usage:")
         print("  单个搜索: python main.py <query> [--targeted] [--sites site1,site2] [--mock] [--debug]")
-        print("  批量搜索: python main.py --file <stock_list_file> [--targeted] [--mock] [--debug]")
+        print("  批量搜索: python main.py --file <search_list_file> [--targeted] [--mock] [--debug]")
         print("\n示例:")
         print("  python main.py 隆基绿能 --mock")
+        print("  python main.py 光伏 --mock")
         print("  python main.py --file example_stocks.txt --mock --targeted")
         return
 
