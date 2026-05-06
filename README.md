@@ -110,8 +110,14 @@ python -m skill search "隆基绿能" --targeted --debug --mock
 ### 查询历史搜索结果
 
 ```bash
+# 查询2026年的所有历史搜索记录
+python -m skill history 2026
+
 # 查询2026年4月的历史搜索记录
 python -m skill history 2026 4
+
+# 查询2026年4月30日的历史搜索记录
+python -m skill history 2026 4 30
 ```
 
 ## 在代码中使用
@@ -122,8 +128,14 @@ import skill
 # 实时搜索
 result = skill.search("隆基绿能", targeted=True, debug=True, use_mock=True)
 
-# 查询历史
+# 查询历史（只年）
+history = skill.query_history(year=2026)
+
+# 查询历史（年月）
 history = skill.query_history(year=2026, month=4)
+
+# 查询历史（年月日）
+history = skill.query_history(year=2026, month=4, day=30)
 ```
 
 ## 功能特性

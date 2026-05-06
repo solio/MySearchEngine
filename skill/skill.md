@@ -49,21 +49,23 @@
 
 ### 能力2：历史查询（query_history）
 
-根据年月查询历史搜索结果。
+根据年、年月或年月日查询历史搜索结果。
 
 #### 请求参数
 
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | year | number | 是 | 年份，如2026 |
-| month | number | 是 | 月份，如4（注意：不需要补零，1-12） |
+| month | number | 否 | 月份，如4（注意：不需要补零，1-12） |
+| day | number | 否 | 日期，如30（需要month存在，1-31） |
 
 #### 返回结果字段
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
 | year | number | 年份 |
-| month | number | 月份 |
+| month | number/null | 月份，未提供时为null |
+| day | number/null | 日期，未提供时为null |
 | count | number | 查询到的搜索记录数 |
 | records | array | 搜索记录列表 |
 | records[].id | string | 记录ID（由日期时间构成） |
@@ -101,12 +103,33 @@ search_result = skill_mysearchengine.search(
 )
 print(search_result)
 
-# 查询历史
-history = skill_mysearchengine.query_history(
-    year=2026,
-    month=4
-)
-print(history)
+# 查询某年所有数据
+history_year = skill_mysearchengine.query_history(year=2026)
+print(history_year)
+
+# 查询某年某月的数据
+history_month = skill_mysearchengine.query_history(year=2026, month=4)
+print(history_month)
+
+# 查询精确某天的数据
+history_day = skill_mysearchengine.query_history(year=2026, month=4, day=30)
+print(history_day)
+```
+
+### 命令行使用示例
+
+```bash
+# 实时搜索
+python -m skill search "隆基绿能" --targeted --debug --mock
+
+# 查询某年
+python -m skill history 2026
+
+# 查询某年某月
+python -m skill history 2026 4
+
+# 查询某年某月某日
+python -m skill history 2026 4 30
 ```
 
 ## 目录结构

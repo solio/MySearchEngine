@@ -170,13 +170,14 @@ def _parse_result_item(result: Dict[str, Any], lines: List[str], start_idx: int)
     return i
 
 
-def query_history(year: int, month: int) -> Dict[str, Any]:
+def query_history(year: int, month: Optional[int] = None, day: Optional[int] = None) -> Dict[str, Any]:
     """
-    根据年月查询历史搜索结果
+    查询历史搜索结果
 
     Args:
-        year: 年份
-        month: 月份（1-12）
+        year: 年份（必填）
+        month: 月份（可选，1-12）
+        day: 日期（可选，1-31，需要month存在）
 
     Returns:
         查询结果字典
@@ -185,27 +186,54 @@ def query_history(year: int, month: int) -> Dict[str, Any]:
     result: Dict[str, Any] = {
         "year": year,
         "month": month,
+        "day": day,
         "count": 0,
         "records": [],
     }
 
-    # 查找当月所有日期的目录
-    for day in range(1, 32):
+    # 根据参数确定需要遍历的目录
+    if month is not None and day is not None:
+        # 精确到日：只遍历该日目录
         month_str = f"{month:02d}"
         day_str = f"{day:02d}"
         date_dir = base_path / f"{year}{month_str}{day_str}"
-
-        if not date_dir.exists():
-            continue
-
-        # 查找该目录下的搜索结果文件
-        for file_path in sorted(date_dir.glob("*搜索结果.md")):
-            record = parse_search_result_file(file_path)
-            if record:
-                result["records"].append(record)
+        _scan_date_directory(date_dir, result)
+    elif month is not None:
+        # 精确到月：遍历该月所有日目录
+        for d in range(1, 32):
+            month_str = f"{month:02d}"
+            day_str = f"{d:02d}"
+            date_dir = base_path / f"{year}{month_str}{day_str}"
+            _scan_date_directory(date_dir, result)
+    else:
+        # 只提供年：遍历该年所有月日目录
+        for m in range(1, 13):
+            for d in range(1, 32):
+                month_str = f"{m:02d}"
+                day_str = f"{d:02d}"
+                date_dir = base_path / f"{year}{month_str}{day_str}"
+                _scan_date_directory(date_dir, result)
 
     result["count"] = len(result["records"])
     return result
+
+
+def _scan_date_directory(date_dir: Path, result: Dict[str, Any]) -> None:
+    """
+    扫描指定日期目录并添加结果到result中
+
+    Args:
+        date_dir: 日期目录路径
+        result: 结果字典，会修改其中的records字段
+    """
+    if not date_dir.exists():
+        return
+
+    # 查找该目录下的搜索结果文件
+    for file_path in sorted(date_dir.glob("*搜索结果.md")):
+        record = parse_search_result_file(file_path)
+        if record:
+            result["records"].append(record)
 
 
 def search(
@@ -271,7 +299,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
         print("  python skill.py search <query> [--targeted] [--debug] [--mock]")
-        print("  python skill.py history <year> <month>")
+        print("  python skill.py history <year> [month] [day]")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -290,18 +318,19 @@ if __name__ == "__main__":
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     elif command == "history":
-        if len(sys.argv) < 4:
-            print("Usage: python skill.py history <year> <month>")
+        if len(sys.argv) < 3:
+            print("Usage: python skill.py history <year> [month] [day]")
             sys.exit(1)
 
         try:
             year = int(sys.argv[2])
-            month = int(sys.argv[3])
+            month = int(sys.argv[3]) if len(sys.argv) > 3 else None
+            day = int(sys.argv[4]) if len(sys.argv) > 4 else None
         except Exception:
-            print("Error: year and month must be integers")
+            print("Error: year, month and day must be integers")
             sys.exit(1)
 
-        result = query_history(year, month)
+        result = query_history(year, month, day)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     else:
