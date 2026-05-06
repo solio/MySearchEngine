@@ -4,8 +4,8 @@ services:
   searxng:
     image: searxng/searxng:latest
     container_name: searxng
-    # Use host network to access local proxy
-    network_mode: host
+    ports:
+      - "8080:8080"
     volumes:
       - ./settings.yml:/etc/searxng/settings.yml:ro
       - ../logs/searxng:/var/log/searxng:z
