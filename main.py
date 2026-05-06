@@ -3,7 +3,7 @@ import asyncio
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Tuple
 
 from api.search_service import SearchService
 
@@ -83,26 +83,41 @@ def save_search_results(query: str, results: list, spam_stats: Dict, use_targete
 
             f.write("---\n\n")
 
-    print(f"结果已保存到: {filepath}")
     return filepath
 
 
-async def main():
-    if len(sys.argv) < 2:
-        print("Usage: python main.py <query> [--targeted] [--sites site1,site2] [--mock] [--debug]")
-        return
+def load_stock_list(file_path: str) -> List[Tuple[str, str]]:
+    """
+    读取股票列表文件
 
-    query = sys.argv[1]
-    use_targeted = "--targeted" in sys.argv
-    use_mock = "--mock" in sys.argv
-    debug = "--debug" in sys.argv
+    文件格式：每行一个股票，格式为「股票代码|股票名称」
 
-    sites = None
-    if "--sites" in sys.argv:
-        idx = sys.argv.index("--sites")
-        if idx + 1 < len(sys.argv):
-            sites = sys.argv[idx + 1].split(",")
+    Args:
+        file_path: 文件路径
 
+    Returns:
+        (股票代码, 股票名称)列表
+    """
+    stock_list = []
+    path = Path(file_path)
+
+    if not path.exists():
+        print(f"错误：文件不存在 - {file_path}")
+        sys.exit(1)
+
+    lines = path.read_text(encoding="utf-8").split("\n")
+    for line in lines:
+        line = line.strip()
+        if not line or "|" not in line:
+            continue
+        code, name = line.split("|", 1)
+        stock_list.append((code.strip(), name.strip()))
+
+    return stock_list
+
+
+async def single_search(query: str, use_targeted: bool = False, sites: List[str] = None, use_mock: bool = False, debug: bool = False):
+    """单个搜索"""
     service = SearchService(use_mock=use_mock)
 
     print(f"搜索: {query}")
@@ -122,7 +137,95 @@ async def main():
     print_evaluation_stats(spam_stats)
 
     if results or spam_stats:
-        save_search_results(query, results, spam_stats, use_targeted or sites is not None, debug=debug)
+        filepath = save_search_results(query, results, spam_stats, use_targeted or sites is not None, debug=debug)
+        print(f"结果已保存到: {filepath}")
+
+
+async def batch_search(file_path: str, use_targeted: bool = False, use_mock: bool = False, debug: bool = False):
+    """批量搜索"""
+    # 加载股票列表
+    stock_list = load_stock_list(file_path)
+    if not stock_list:
+        print("错误：未读取到有效的股票列表")
+        sys.exit(1)
+
+    print(f"已加载 {len(stock_list)} 只股票")
+    print("-" * 60)
+
+    # 创建搜索服务
+    service = SearchService(use_mock=use_mock)
+
+    # 逐个搜索
+    success_count = 0
+    fail_count = 0
+
+    for code, name in stock_list:
+        print(f"[{success_count+fail_count+1}/{len(stock_list)}] 正在搜索：{name}({code})")
+
+        try:
+            if use_targeted:
+                results, spam_stats = await service.targeted_search(name, debug=debug)
+            else:
+                results, spam_stats = await service.search(name, debug=debug)
+
+            if results:
+                saved_path = save_search_results(name, results, spam_stats, use_targeted, debug=debug)
+                print(f"  成功！保存到：{saved_path}")
+                success_count += 1
+            else:
+                print(f"  未找到有效结果")
+                fail_count += 1
+
+        except Exception as e:
+            print(f"  失败：{e}")
+            fail_count += 1
+
+    # 总结
+    print("\n" + "=" * 60)
+    print(f"批量搜索完成")
+    print(f"  总股票数：{len(stock_list)}")
+    print(f"  成功：{success_count}")
+    print(f"  失败：{fail_count}")
+    print("=" * 60)
+
+
+async def main():
+    if len(sys.argv) < 2:
+        print("Usage:")
+        print("  单个搜索: python main.py <query> [--targeted] [--sites site1,site2] [--mock] [--debug]")
+        print("  批量搜索: python main.py --file <stock_list_file> [--targeted] [--mock] [--debug]")
+        print("\n示例:")
+        print("  python main.py 隆基绿能 --mock")
+        print("  python main.py --file example_stocks.txt --mock --targeted")
+        return
+
+    # 检查是否是批量搜索模式
+    if sys.argv[1] == "--file":
+        if len(sys.argv) < 3:
+            print("错误：--file 参数需要指定文件路径")
+            print("Usage: python main.py --file <stock_list_file> [--targeted] [--mock] [--debug]")
+            return
+
+        file_path = sys.argv[2]
+        use_targeted = "--targeted" in sys.argv
+        use_mock = "--mock" in sys.argv
+        debug = "--debug" in sys.argv
+
+        await batch_search(file_path, use_targeted, use_mock, debug)
+    else:
+        # 单个搜索模式
+        query = sys.argv[1]
+        use_targeted = "--targeted" in sys.argv
+        use_mock = "--mock" in sys.argv
+        debug = "--debug" in sys.argv
+
+        sites = None
+        if "--sites" in sys.argv:
+            idx = sys.argv.index("--sites")
+            if idx + 1 < len(sys.argv):
+                sites = sys.argv[idx + 1].split(",")
+
+        await single_search(query, use_targeted, sites, use_mock, debug)
 
 
 if __name__ == "__main__":

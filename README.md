@@ -88,13 +88,13 @@ python main.py "隆基绿能" --sites xueqiu.com,cls.cn --mock
 然后执行批量搜索：
 
 ```bash
-python batch.py --file example_stocks.txt --mock
+python main.py --file example_stocks.txt --mock
 ```
 
 使用定向搜索：
 
 ```bash
-python batch.py --file example_stocks.txt --targeted --mock --debug
+python main.py --file example_stocks.txt --targeted --mock --debug
 ```
 
 ## Skill使用方法
