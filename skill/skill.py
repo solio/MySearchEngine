@@ -290,6 +290,7 @@ def search(
     query: str,
     targeted: bool = False,
     debug: bool = False,
+    use_mock: bool = False,
 ) -> Dict[str, Any]:
     """
     实时搜索
@@ -298,10 +299,15 @@ def search(
         query: 搜索关键词
         targeted: 是否定向搜索（仅优质站点）
         debug: 是否返回详细评估信息
+        use_mock: 是否使用 mock 模式（返回测试数据） - 已废弃，仅保留兼容
 
     Returns:
         搜索结果字典
     """
+    if use_mock:
+        import warnings
+        warnings.warn("use_mock parameter is deprecated and will be ignored", DeprecationWarning)
+
     service = SearchService()
 
     if targeted:
@@ -353,7 +359,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python skill.py search <query> [--targeted] [--debug]")
+        print("  python skill.py search <query> [--targeted] [--debug] [--mock]")
         print("  python skill.py history <year> [month] [day] [--query keyword]")
         sys.exit(1)
 
@@ -361,14 +367,15 @@ if __name__ == "__main__":
 
     if command == "search":
         if len(sys.argv) < 3:
-            print("Usage: python skill.py search <query> [--targeted] [--debug]")
+            print("Usage: python skill.py search <query> [--targeted] [--debug] [--mock]")
             sys.exit(1)
 
         query = sys.argv[2]
         targeted = "--targeted" in sys.argv
         debug = "--debug" in sys.argv
+        use_mock = "--mock" in sys.argv
 
-        result = search(query, targeted, debug)
+        result = search(query, targeted, debug, use_mock)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     elif command == "history":
