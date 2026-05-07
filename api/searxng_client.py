@@ -9,7 +9,7 @@ logger = logging.getLogger("mysearchengine.searxng_client")
 
 
 class SearXNGClient:
-    def __init__(self, base_url: str = "http://localhost:8080", timeout: int = 10):
+    def __init__(self, base_url: str = "http://localhost:8080", timeout: int = 30):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
@@ -30,14 +30,14 @@ class SearXNGClient:
             params["time_range"] = time_range
 
         try:
-            logger.debug(f"Requesting search from {self.base_url} for query: {query}")
+            logger.info(f"Requesting search from {self.base_url} for query: {query}")
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
                     f"{self.base_url}/search",
                     params=params,
                     follow_redirects=True
                 )
-                logger.debug(f"Response status: {response.status_code}")
+                logger.info(f"Response status: {response.status_code}")
                 response.raise_for_status()
                 data = response.json()
 

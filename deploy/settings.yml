@@ -201,15 +201,15 @@ outgoing:
   # are also supported: see
   #   https://2.python-requests.org/en/latest/user/advanced/#socks
   #
-  proxies:
-    all://:
-      - socks5://host.docker.internal:10795
+  # proxies:
+  #   all://:
+  #     - socks5h://host.docker.internal:10795
   #
   #  using_tor_proxy: true
   #
   # Extra seconds to add in order to account for the time taken by the proxy
   #
-  extra_proxy_timeout: 20
+  # extra_proxy_timeout: 20
   #
   # uncomment below section only if you have more than one network interface
   # which can be the source of outgoing search requests
@@ -303,10 +303,16 @@ engines:
   - name: google
     engine: google
     shortcut: go
+    proxies:
+      all://:
+        - socks5h://host.docker.internal:10795
 
   - name: google news
     engine: google_news
     shortcut: gon
+    proxies:
+      all://:
+        - socks5h://host.docker.internal:10795
 
 # Doku engine lets you access to any Doku wiki instance:
 # A public one or a privete/corporate one.
